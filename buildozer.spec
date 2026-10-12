@@ -1,24 +1,52 @@
-[app]
-title = DEZEL POOL AI
-package.name = dezelpoolai
-package.domain = org.dezel
-source.dir = .
-source.include_exts = py,png,jpg,jpeg,webp,kv,atlas,txt
-version = 1.0.0
-requirements = python3,kivy
-orientation = portrait
-fullscreen = 0
+name: Build DEZEL POOL AI APK
 
-# Android settings
-android.api = 35
-android.minapi = 23
-android.archs = arm64-v8a
-android.accept_sdk_license = True
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
-# Permissions are intentionally minimal. If gallery access behaves differently
-# on your Android version, use the in-app file chooser or copy an image into the app folder.
-android.permissions = READ_EXTERNAL_STORAGE
+jobs:
+  build:
+    runs-on: ubuntu-22.04
 
-[buildozer]
-log_level = 2
-warn_on_root = 1
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo6 cmake libffi-dev libssl-dev \
+            build-essential ccache libltdl-dev
+
+      - name: Install Python build tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+
+      - name: Build Android APK
+        run: |
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEZEL-POOL-AI-APK
+          path: bin/*.apk
+          if-no-files-found: error
